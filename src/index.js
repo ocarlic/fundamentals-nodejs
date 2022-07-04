@@ -13,13 +13,13 @@ const users = [];
 function checksExistsUserAccount(request, response, next) {
   const { username } = request.headers
 
-  const checkUsername = users.find(user => user.username === username)
+  const user = users.find(user => user.username === username)
 
-  if(!checkUsername) {
-    return response.status(400).json({ error: 'User not found' })
+  if(!user) {
+    return response.status(404).json({ error: 'User not found' })
   }
 
-  request.username = checkUsername
+  request.user = user
   
   return next()
 }
@@ -27,31 +27,33 @@ function checksExistsUserAccount(request, response, next) {
 app.post('/users', (request, response) => {
   const { name, username } = request.body
 
-  const userAlreadyExist = users.some(user => user.username === username)
+  const userAlreadyExist = users.find(user => user.username === username)
 
   if(userAlreadyExist) {
-    return response.status(400).json({ error: 'User already exists!' })
+    return response.status(400).json({ error: 'Username already exists' })
   }
 
-  users.push({
+  const user = {
     id: uuidv4(),
     name,
     username,
     todos: []
-  })
+  }
 
-  return response.status(201).json(users)
+  users.push(user)
+
+  return response.status(201).json(user)
 });
 
 app.get('/todos', checksExistsUserAccount, (request, response) => {
-  const { username } = request
+  const { user } = request
 
-  return response.json(username.todos)  
+  return response.json(user.todos)  
 });
 
 app.post('/todos', checksExistsUserAccount, (request, response) => {
   const { title, deadline } = request.body
-  const { username } = request
+  const { user } = request
 
   const todo = {
     id: uuidv4(),
@@ -61,7 +63,7 @@ app.post('/todos', checksExistsUserAccount, (request, response) => {
     created_at: new Date()
   }
 
-  username.todos.push(todo)
+  user.todos.push(todo)
 
   return response.status(201).send()
 });
@@ -69,9 +71,9 @@ app.post('/todos', checksExistsUserAccount, (request, response) => {
 app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
   const { id } = request.params
   const { title, deadline } = request.body
-  const { username } = request
+  const { user } = request
 
-  const todo = username.todos.find(todo => todo.id === id)
+  const todo = user.todos.find(todo => todo.id === id)
 
   todo.title = title
   todo.deadline = new Date(deadline)
